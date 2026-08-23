@@ -1,0 +1,31 @@
+{
+  "mode": "dnase",
+  "mode_label": "DNase",
+  "scaled_features": [
+    "DNase"
+  ],
+  "sample_count": 1224,
+  "alpha_count": 21,
+  "alpha_min": 0.0,
+  "alpha_max": 2.0,
+  "fit_model": "baseline + C * alpha^h",
+  "baseline_contrast": 89.3083994064754,
+  "C": 51.13387541066582,
+  "h": 1.262000247655497,
+  "r_squared": 0.9956590179561283,
+  "response_direction": "increasing",
+  "end_minus_start": 118.30598786079982,
+  "fit_valid_for_positive_response": true,
+  "fit_covariance": [
+    [
+      0.7133713047600042,
+      -0.02254608109114755
+    ],
+    [
+      -0.02254608109114755,
+      0.001017193237445782
+    ]
+  ],
+  "oe_correction": true,
+  "quantization": "per-prediction O/E 99.5th percentile"
+}
