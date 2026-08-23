@@ -1,0 +1,31 @@
+{
+  "mode": "h3k4me3",
+  "mode_label": "H3K4me3",
+  "scaled_features": [
+    "H3K4me3"
+  ],
+  "sample_count": 1224,
+  "alpha_count": 21,
+  "alpha_min": 0.0,
+  "alpha_max": 2.0,
+  "fit_model": "baseline + C * alpha^h",
+  "baseline_contrast": 89.25493018189488,
+  "C": 48.525555333283144,
+  "h": 1.273000610770319,
+  "r_squared": 0.9760807722849356,
+  "response_direction": "increasing",
+  "end_minus_start": 108.63556601472561,
+  "fit_valid_for_positive_response": true,
+  "fit_covariance": [
+    [
+      3.880738049519242,
+      -0.1295110132459662
+    ],
+    [
+      -0.12951101324596617,
+      0.006132269964696786
+    ]
+  ],
+  "oe_correction": true,
+  "quantization": "per-prediction O/E 99.5th percentile"
+}
