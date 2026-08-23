@@ -1,0 +1,31 @@
+{
+  "mode": "h3k27ac",
+  "mode_label": "H3K27ac",
+  "scaled_features": [
+    "H3K27ac"
+  ],
+  "sample_count": 1224,
+  "alpha_count": 21,
+  "alpha_min": 0.0,
+  "alpha_max": 2.0,
+  "fit_model": "baseline + C * alpha^h",
+  "baseline_contrast": 139.98294091838878,
+  "C": 4.868329132527482,
+  "h": 2.827281438761514,
+  "r_squared": 0.9734630082603359,
+  "response_direction": "increasing",
+  "end_minus_start": 32.370435533063215,
+  "fit_valid_for_positive_response": true,
+  "fit_covariance": [
+    [
+      0.33157272129139936,
+      -0.11241404316650076
+    ],
+    [
+      -0.11241404316650076,
+      0.040771727295912136
+    ]
+  ],
+  "oe_correction": true,
+  "quantization": "per-prediction O/E 99.5th percentile"
+}
