@@ -1,0 +1,32 @@
+{
+  "mode": "dual",
+  "mode_label": "DNase + H3K27ac",
+  "scaled_features": [
+    "DNase",
+    "H3K27ac"
+  ],
+  "sample_count": 1224,
+  "alpha_count": 21,
+  "alpha_min": 0.0,
+  "alpha_max": 2.0,
+  "fit_model": "baseline + C * alpha^h",
+  "baseline_contrast": 95.66846700935322,
+  "C": 47.73839168222003,
+  "h": 1.5349273618963981,
+  "r_squared": 0.9962440083612367,
+  "response_direction": "increasing",
+  "end_minus_start": 135.83390252090715,
+  "fit_valid_for_positive_response": true,
+  "fit_covariance": [
+    [
+      0.852132727765885,
+      -0.029796287452373865
+    ],
+    [
+      -0.029796287452373865,
+      0.0013239898174788713
+    ]
+  ],
+  "oe_correction": true,
+  "quantization": "per-prediction O/E 99.5th percentile"
+}
