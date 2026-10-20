@@ -1,0 +1,49 @@
+# Datasets
+/raw/
+/data/
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.bigWig
+*.bigwig
+*.bw
+*.fa
+*.fasta
+*.fai
+*.pairs
+*.pairs.gz
+*.cool
+*.mcool
+
+# Training outputs and caches
+/results/
+/.cache/
+*.log
+*.tmp
+
+# Python environments and build artifacts
+/.venv/
+/.venv-training/
+/.bootstrap-virtualenv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
