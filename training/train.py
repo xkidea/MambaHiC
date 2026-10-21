@@ -24,6 +24,7 @@ from torch.utils.data import DataLoader, Dataset
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+AUTOSOMES = tuple(f"chr{number}" for number in range(1, 23))
 
 
 @dataclass(frozen=True)
@@ -71,13 +72,25 @@ def parse_args() -> argparse.Namespace:
         help="Output directory. By default, results/training/cnn_mamba_legacy is used.",
     )
 
-    # Recovered notebook split and optimization settings.
-    parser.add_argument("--holdout-chromosome", default="chr7")
+    parser.add_argument(
+        "--validation-chromosome",
+        "--holdout-chromosome",
+        dest="validation_chromosome",
+        choices=AUTOSOMES,
+        default="chr1",
+        help="Chromosome used for validation and best-checkpoint selection.",
+    )
+    parser.add_argument(
+        "--test-chromosome",
+        choices=AUTOSOMES,
+        default="chr7",
+        help="Chromosome reserved for testing the best checkpoint after training.",
+    )
     parser.add_argument(
         "--exclude-chromosomes",
         default=None,
         help=(
-            "Comma-separated chromosomes excluded from training in addition to the holdout. "
+            "Comma-separated chromosomes excluded from training in addition to validation and test. "
             "The Legacy default is none."
         ),
     )
@@ -213,28 +226,41 @@ def filename_has_chromosome(path: Path, chromosome: str) -> bool:
 
 def split_files(
     data_dir: Path,
-    holdout_chromosome: str,
+    validation_chromosome: str,
+    test_chromosome: str,
     excluded_chromosomes: Sequence[str],
     max_samples_per_split: int | None,
-) -> tuple[list[Path], list[Path]]:
+) -> tuple[list[Path], list[Path], list[Path]]:
+    if validation_chromosome not in AUTOSOMES or test_chromosome not in AUTOSOMES:
+        raise ValueError("Validation and test chromosomes must be autosomes (chr1-chr22)")
+    if validation_chromosome == test_chromosome:
+        raise ValueError("Validation and test chromosomes must be different")
+    training_chromosomes = [
+        chromosome
+        for chromosome in AUTOSOMES
+        if chromosome not in {validation_chromosome, test_chromosome}
+        and chromosome not in excluded_chromosomes
+    ]
     all_files = sorted(data_dir.glob("*.pkl"))
-    validation_files = [path for path in all_files if filename_has_chromosome(path, holdout_chromosome)]
+    validation_files = [path for path in all_files if filename_has_chromosome(path, validation_chromosome)]
+    test_files = [path for path in all_files if filename_has_chromosome(path, test_chromosome)]
     training_files = [
         path
         for path in all_files
-        if not filename_has_chromosome(path, holdout_chromosome)
-        and not any(filename_has_chromosome(path, chromosome) for chromosome in excluded_chromosomes)
+        if any(filename_has_chromosome(path, chromosome) for chromosome in training_chromosomes)
     ]
     if max_samples_per_split is not None:
         training_files = training_files[:max_samples_per_split]
         validation_files = validation_files[:max_samples_per_split]
-    if not training_files or not validation_files:
+        test_files = test_files[:max_samples_per_split]
+    if not training_files or not validation_files or not test_files:
         raise ValueError(
             "The chromosome split is empty: "
-            f"train={len(training_files)}, validation={len(validation_files)}, "
-            f"holdout={holdout_chromosome}, excluded={list(excluded_chromosomes)}"
+            f"train={len(training_files)}, validation={len(validation_files)}, test={len(test_files)}, "
+            f"validation_chromosome={validation_chromosome}, test_chromosome={test_chromosome}, "
+            f"excluded={list(excluded_chromosomes)}"
         )
-    return training_files, validation_files
+    return training_files, validation_files, test_files
 
 
 def inspect_sample(path: Path) -> tuple[int, int, dict[str, tuple[int, ...]]]:
@@ -374,23 +400,21 @@ def main() -> None:
         if args.exclude_chromosomes is not None
         else list(LEGACY_PROFILE.default_excluded_chromosomes)
     )
-    training_files, validation_files = split_files(
+    training_files, validation_files, test_files = split_files(
         data_dir,
-        args.holdout_chromosome,
+        args.validation_chromosome,
+        args.test_chromosome,
         excluded,
         args.max_samples_per_split,
     )
     num_omics, hic_size, training_shapes = inspect_sample(training_files[0])
-    validation_num_omics, validation_hic_size, validation_shapes = inspect_sample(validation_files[0])
-    if (validation_num_omics, validation_hic_size, validation_shapes) != (
-        num_omics,
-        hic_size,
-        training_shapes,
-    ):
-        raise ValueError(
-            "Training/validation sample shapes differ: "
-            f"train={training_shapes}, validation={validation_shapes}"
-        )
+    for split_name, files in (("validation", validation_files), ("test", test_files)):
+        split_num_omics, split_hic_size, split_shapes = inspect_sample(files[0])
+        if (split_num_omics, split_hic_size, split_shapes) != (num_omics, hic_size, training_shapes):
+            raise ValueError(
+                f"Training/{split_name} sample shapes differ: "
+                f"train={training_shapes}, {split_name}={split_shapes}"
+            )
     model = create_model(args, num_omics)
     parameter_count = sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad)
 
@@ -402,7 +426,9 @@ def main() -> None:
         "data_dir": str(data_dir),
         "train_samples": len(training_files),
         "validation_samples": len(validation_files),
-        "holdout_chromosome": args.holdout_chromosome,
+        "test_samples": len(test_files),
+        "validation_chromosome": args.validation_chromosome,
+        "test_chromosome": args.test_chromosome,
         "excluded_chromosomes": excluded,
         "sample_shapes": training_shapes,
         "num_omics_features": num_omics,
@@ -606,6 +632,23 @@ def main() -> None:
         print(message, flush=True)
 
     print(f"Training complete. Best validation PCC: {best_pcc:.6f}")
+    best_model_path = output_dir / LEGACY_PROFILE.best_model_filename
+    if not np.isfinite(best_pcc) or not best_model_path.is_file():
+        raise RuntimeError("Cannot test: no best checkpoint with a finite validation PCC is available")
+    load_initial_state(unwrapped_model(model), str(best_model_path), device)
+    test_dataset = NotebookCompatibleDataset(test_files, zero_diagonal=args.zero_diagonal)
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=resolved["batch_size"],
+        shuffle=False,
+        **loader_options,
+    )
+    test_metrics, _, _, _ = evaluate_model(model, test_loader, device)
+    save_json(
+        output_dir / "test_metrics.json",
+        {"test_chromosome": args.test_chromosome, "checkpoint": str(best_model_path), **test_metrics},
+    )
+    print("Test metrics: " + json.dumps(test_metrics, sort_keys=True), flush=True)
 
 
 if __name__ == "__main__":

@@ -32,7 +32,7 @@ PYTHON="${ENV_DIR}/bin/python"
 # and lets the extension wheels resolve against the intended torch ABI.
 "${PYTHON}" -m pip install --index-url "${PYTORCH_INDEX}" \
     "torch==${PYTORCH_VERSION}"
-"${PYTHON}" -m pip install -r "${PROJECT_DIR}/requirements-training-lock.txt"
+"${PYTHON}" -m pip install -r "${PROJECT_DIR}/env/requirements-training-lock.txt"
 
 # These official prebuilt wheels are compiled for the PyTorch 2.4 ABI and CUDA
 # 12.x. They avoid compiling against the server's older system CUDA toolkit.

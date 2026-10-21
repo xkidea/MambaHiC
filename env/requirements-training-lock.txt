@@ -1,0 +1,17 @@
+# Runtime packages for training. PyTorch and the two CUDA extensions are
+# installed separately by scripts/setup_training_env.sh from their official
+# CUDA wheel indexes/releases.
+# Match the environment that serialized the project's generated pickle files.
+# NumPy 1.x cannot unpickle their numpy._core references.
+numpy==2.2.6
+scipy==1.15.3
+matplotlib==3.9.2
+tqdm==4.66.5
+h5py==3.11.0
+einops==0.8.0
+packaging==24.1
+ninja==1.13.0
+psutil==6.0.0
+# mamba-ssm imports its optional language-model helpers at package import time.
+# Keep this on the Transformers 4.x API used by mamba-ssm 2.2.2.
+transformers==4.44.2
